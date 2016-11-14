@@ -3,21 +3,21 @@ __email__ = 'sharon_lev@yahoo.com'
 __date__ = '8/31/15 16:19'
 
 
-def DataProvider(fn_data_provider, id_key=None, id_index=None):
+def DataProvider(data_set, id_key=None, id_index=None):
   """
   Data provider decorator, allows another callable to provide the data for the test
 
-  :param fn_data_provider: an iterable instance that can provide sets of data as expected by the test method decorated
+  :param data_set: a DataSet instance that can provide sets of data as expected by the test method decorated
   :param id_key: optional key to use for reporting failures
   :param id_index: optional index of argument to use for reporting failures
   """
   def test_decorator(test_method):
     def decorated(self, *args, **kwargs):
       firstCall = True
-      lastrun = sum(1 for _ in fn_data_provider()) - 1
+      lastrun = sum(1 for _ in data_set()) - 1
       failures = []
       errors = []
-      for counter, args in enumerate(fn_data_provider()):
+      for counter, args in enumerate(data_set()):
         try:
           if not firstCall: self.setUp()
           firstCall = False
