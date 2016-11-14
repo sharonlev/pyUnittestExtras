@@ -49,8 +49,23 @@ class TestDataProvider(TestCase):
       assert not self._raise_assertion_in_test , "generic assertion error"
       self._method_count += 1
 
+    @DataProvider(data_dict, id_key='key2')
+    def dict_driven_method_with_key(self, key1, key2):
+      print key1, key2,
+      if self._cause_error_in_test: raise IOError("generic test error")
+      assert not self._raise_assertion_in_test , "generic assertion error"
+      self._method_count += 1
+
+
     @DataProvider(data_list)
     def list_driven_method(self, a, b, c):
+      print a, b, c,
+      if self._cause_error_in_test: raise IOError("generic test error")
+      assert not self._raise_assertion_in_test , "generic assertion error"
+      self._method_count += 1
+
+    @DataProvider(data_list, id_index=2)
+    def list_driven_method_with_index(self, a, b, c):
       print a, b, c,
       if self._cause_error_in_test: raise IOError("generic test error")
       assert not self._raise_assertion_in_test , "generic assertion error"
@@ -69,6 +84,9 @@ class TestDataProvider(TestCase):
 
 
   def test__dict_driven_testing(self):
+    """
+    validate that all sets containing dict are fed to 'test' method
+    """
     self.test_class.setUp()
     self.test_class.dict_driven_method()
     self.test_class.tearDown()
@@ -77,6 +95,9 @@ class TestDataProvider(TestCase):
 
 
   def test__list_driven_testing(self):
+    """
+    validate that all sets containing list are fed to 'test' method
+    """
     self.test_class.setUp()
     self.test_class.list_driven_method()
     self.test_class.tearDown()
@@ -85,6 +106,9 @@ class TestDataProvider(TestCase):
 
 
   def test__string_driven_testing(self):
+    """
+    validate that all sets containing primitive are fed to 'test' method
+    """
     self.test_class.setUp()
     self.test_class.string_driven_method()
     self.test_class.tearDown()
@@ -93,6 +117,9 @@ class TestDataProvider(TestCase):
 
 
   def test__raise_error_in_setup(self):
+    """
+    validate that errors raised in setUp are not breaking the cycle
+    """
     self.test_class.setUp()
     self.test_class._cause_error_at_setup = True
     assertion = None
@@ -105,6 +132,9 @@ class TestDataProvider(TestCase):
 
 
   def test__raise_error_in_test(self):
+    """
+    validate that errors in test cases are tracked in results properly
+    """
     self.test_class.setUp()
     self.test_class._cause_error_in_test = True
     assertion = False
@@ -115,9 +145,12 @@ class TestDataProvider(TestCase):
       assertion = e
 
     self.assertIsInstance(assertion, Exception)
-    self.assertEqual(len(assertion.errors), 2)
+    self.assertEqual(len(assertion.errors), 2, assertion.errors)
 
   def test__raise_assertion_in_test(self):
+    """
+    validate that assertion in test cases (test failures) are tracked in results properly, and by default listed by passed set index
+    """
     self.test_class.setUp()
     self.test_class._raise_assertion_in_test = True
     assertion = False
@@ -129,3 +162,34 @@ class TestDataProvider(TestCase):
 
     self.assertIsInstance(assertion, AssertionError)
     self.assertEqual(len(assertion.failures), 2)
+    self.assertTrue(all(id in assertion.message for id in ['Data set [%d]:' % i for i in range(2)]), 'could not locate proper indexes for failed tests')
+
+  def test_assert_by_key(self):
+    """
+    validate that passed id keys result in properly keyed/taged failures per data set
+    """
+    self.test_class.setUp()
+    self.test_class._raise_assertion_in_test = True
+    assertion = False
+    try:
+      self.test_class.dict_driven_method_with_key()
+    except AssertionError, e:
+      print type(e.message), e.message
+      assertion = e
+
+    self.assertTrue(all(id in assertion.message for id in ['Data set [%d]:' % i for i in [2, 4]]), 'could not locate proper keys for failed tests')
+
+  def test_assert_by_index(self):
+    """
+    validate that passed id indices result in properly indexed/taged failures per data set
+    """
+    self.test_class.setUp()
+    self.test_class._raise_assertion_in_test = True
+    assertion = False
+    try:
+      self.test_class.list_driven_method_with_index()
+    except AssertionError, e:
+      print type(e.message), e.message
+      assertion = e
+
+    self.assertTrue(all(id in assertion.message for id in ['Data set [%d]:' % i for i in [3, 6]]), 'could not locate proper indexes for failed tests')
