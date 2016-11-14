@@ -3,7 +3,7 @@ __author__ = "Sharon Lev"
 __email__ = "sharon_lev@yahoo.com"
 
 from unittest import TestCase
-from src.unittestextras import DataProvider
+from src.unittestextras import DataProvider, DataSet
 
 class TestDataProvider(TestCase):
   """
@@ -27,17 +27,17 @@ class TestDataProvider(TestCase):
       print 'teardown'
       self._tear_down_count += 1
 
-    data_dict = lambda:(
+    data_dict = DataSet(
       dict(key1=1, key2=2),
       dict(key1=3, key2=4)
     )
 
-    data_list = lambda:(
+    data_list = DataSet(
       [1,2,3],
       [4,5,6]
     )
 
-    data_strings = lambda:(
+    data_strings = DataSet(
       "string_1",
       "string_2"
     )
