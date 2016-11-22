@@ -1,6 +1,11 @@
-__author__ = 'Sharon lev'
+__author__ = 'Sharon Lev'
 __email__ = 'sharon_lev@yahoo.com'
-__date__ = '8/31/15 16:19'
+__date__ = '11/21/16'
+__doc__ = """
+based on solution provided at: http://stackoverflow.com/questions/2798956/python-unittest-generate-multiple-tests-programmatically
+"""
+
+import sys
 
 
 def DataProvider(data_set, id_key=None, id_index=None):
@@ -11,57 +16,25 @@ def DataProvider(data_set, id_key=None, id_index=None):
   :param id_key: optional key to use for reporting failures
   :param id_index: optional index of argument to use for reporting failures
   """
-  def test_decorator(test_method):
-    def decorated(self, *args, **kwargs):
-      firstCall = True
-      lastrun = sum(1 for _ in data_set()) - 1
-      failures = []
-      errors = []
-      for counter, args in enumerate(data_set()):
+  def test_decorator(test_method, parameters=data_set):
+    for parameter in parameters():
+      if isinstance(parameter, dict):
+        args_for_parameter = str(parameter[id_key]) if id_key is not None else str(parameter[id_index]) if id_index is not None else ",".join('%s=%s' % (k,v) for k,v in parameter.iteritems())
+        def decorated(self, method=test_method, parameter=parameter):
+          method(self, **parameter)
+      else:
+        parameter = parameter if isinstance(parameter, (list, tuple)) else (parameter, )
+        args_for_parameter = str(parameter[id_index]) if id_index is not None else ",".join(repr(v) for v in parameter)
+        def decorated(self, method=test_method, parameter=parameter):
+          method(self, *parameter)
+
+      name_for_parameter = test_method.__name__ + "(" + args_for_parameter + ")"
+      for i in range(10):
         try:
-          if not firstCall: self.setUp()
-          firstCall = False
-
-          if isinstance(args, dict): test_method(self, **args)
-          elif isinstance(args, list): test_method(self, *args)
-          else: test_method(self, args)
-
-        except AssertionError as AE:
-          if hasattr(self, 'logger'): self.logger.error(AE)
-          failures.append(str(explicit_exception(AE, args, id_key, id_index, counter).message))
-        except Exception as err:
-          if hasattr(self, 'logger'): self.logger.error(err)
-          errors.append((str(explicit_exception(err, args, id_key, id_index, counter).message)))
-
-        if (counter < lastrun):
-          self.tearDown()
-
-      #after running all datasets:
-      if len(errors) > 0:
-        ex = Exception('The following errors occured: {}'.format(str(errors + failures)))
-        ex.errors = errors
-        ex.failures = failures
-        raise ex
-      if len(failures) > 0:
-        assertion = AssertionError('The following Assertions occurred: {}'.format(str(failures)))
-        assertion.errors = []
-        assertion.failures = failures
-        raise assertion
-    return decorated
+          x = sys._getframe(i).f_locals
+        except:
+          break
+      frame = sys._getframe(1)  # pylint: disable-msg=W0212
+      frame.f_locals[name_for_parameter] = decorated
+    return None
   return test_decorator
-
-def explicit_exception(exception, args, id_key, id_index, id):
-  """
-  rename exception message with explicit ID to make it easier to identify failures to data sets
-  :param exception: an Exception instance
-  :param args: test args set
-  :return: updated Exception with explicit message
-  """
-  try:
-    id = args[id_key] if id_key else args[id_index] if id_index else id
-  except:
-    id = id
-
-#  if isinstance(args, dict) and 'DataProviderSetID' in args: id = args['DataProviderSetID']
-  exception.message = 'Data set [%s]: %s' % (id, exception.message)
-  return exception
