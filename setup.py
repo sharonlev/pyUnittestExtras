@@ -7,20 +7,21 @@ try:
 except:
     from distutils.core import setup
 
-def filecontent_or_string(file, string):
-    retval = string
+
+def filecontent_or_string(filename, string):
+    content = string
     try:
-        retval = open(file).read()
+        content = open(filename).read()
     except:
         pass
-    return  retval
+    return content
 
 lic = filecontent_or_string('LICENSE', '')
 readme = filecontent_or_string('README.md', 'Extra Unittest Functionality')
 
 setup(
     name='unittestextras',
-    version='0.3',
+    version='1.0',
     packages= find_packages('src'),
     package_dir={'': 'src'},
     url='https://github.com/sharonlev/pyUnittestExtras',
